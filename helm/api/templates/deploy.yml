@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+  name: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.deploy.replicas }}
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: {{ .Values.deploy.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          imagePullPolicy: {{ .Values.container.imagePullPolicy }}
+          image: {{ .Values.container.image }}
+          env:
+            - name: CONNECTIONSTRINGS__PGCONNECTION
+              #value: "server={{ .Values.deploy.env_var.pg_balancer_host }}; port={{ .Values.deploy.env_var.pg_balancer_port }}; database={{ .Values.deploy.env_var.pg_database }}; user id={{ .Values.deploy.env_var.pg_user }}; password={{ .Values.deploy.env_var.pg_password }};"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Chart.Name }}
+                  key: connection-string
+            - name: DOTNET_ENVIRONMENT
+              value: "Development"
+
+          ports:
+            - containerPort: {{ .Values.container.port }}
+              protocol: TCP
+              name: http
+
+          resources:
+            limits:
+              cpu: {{ .Values.deploy.limits.cpu }}
+              memory: {{ .Values.deploy.limits.memory }}
+            requests:
+              cpu: {{ .Values.deploy.requests.cpu }}
+              memory: {{ .Values.deploy.requests.memory }}
